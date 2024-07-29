@@ -1,8 +1,12 @@
 "use server";
 import { z } from "zod";
-import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import { registerUserService } from "../services/auth-services";
+import { redirect } from "next/navigation";
+
+import {
+    registerUserService,
+    loginUserService,
+} from "@/data/services/auth-service";
 
 const config = {
     maxAge: 60 * 60 * 24 * 7, // 1 week
@@ -24,9 +28,7 @@ const schemaRegister = z.object({
     }),
 });
 
-export async function registerUserAction(PrevState, formData) {
-    console.log("Hello From Register User Action");
-
+export async function registerUserAction(prevState, formData) {
     const validatedFields = schemaRegister.safeParse({
         username: formData.get("username"),
         password: formData.get("password"),
@@ -35,7 +37,7 @@ export async function registerUserAction(PrevState, formData) {
 
     if (!validatedFields.success) {
         return {
-            ...PrevState,
+            ...prevState,
             zodErrors: validatedFields.error.flatten().fieldErrors,
             strapiErrors: null,
             message: "Missing Fields. Failed to Register.",
@@ -46,30 +48,85 @@ export async function registerUserAction(PrevState, formData) {
 
     if (!responseData) {
         return {
-            ...PrevState,
+            ...prevState,
             strapiErrors: null,
             zodErrors: null,
-            message: "Oops!!!! Somthing went wrong. Please try again."
-        }
+            message: "Ops! Something went wrong. Please try again.",
+        };
     }
+
     if (responseData.error) {
         return {
-            ...PrevState,
+            ...prevState,
             strapiErrors: responseData.error,
             zodErrors: null,
             message: "Failed to Register.",
-        }
+        };
     }
 
     cookies().set("jwt", responseData.jwt, config);
     redirect("/dashboard");
+}
 
-    console.log("###################################################################################################################");
-    console.log("user reg successfully", responseData.jwt);
-    console.log("###################################################################################################################");
+const schemaLogin = z.object({
+    identifier: z
+        .string()
+        .min(3, {
+            message: "Identifier must have at least 3 or more characters",
+        })
+        .max(20, {
+            message: "Please enter a valid username or email address",
+        }),
+    password: z
+        .string()
+        .min(6, {
+            message: "Password must have at least 6 or more characters",
+        })
+        .max(100, {
+            message: "Password must be between 6 and 100 characters",
+        }),
+});
 
-    return {
-        ...PrevState,
-        data: "ok",
-    };
+export async function loginUserAction(prevState, formData) {
+    const validatedFields = schemaLogin.safeParse({
+        identifier: formData.get("identifier"),
+        password: formData.get("password"),
+    });
+
+    if (!validatedFields.success) {
+        return {
+            ...prevState,
+            zodErrors: validatedFields.error.flatten().fieldErrors,
+            message: "Missing Fields. Failed to Login.",
+        };
+    }
+
+    const responseData = await loginUserService(validatedFields.data);
+
+    if (!responseData) {
+        return {
+            ...prevState,
+            strapiErrors: responseData.error,
+            zodErrors: null,
+            message: "Ops! Something went wrong. Please try again.",
+        };
+    }
+
+    if (responseData.error) {
+        return {
+            ...prevState,
+            strapiErrors: responseData.error,
+            zodErrors: null,
+            message: "Failed to Login.",
+        };
+    }
+
+    cookies().set("jwt", responseData.jwt, config);
+
+    redirect("/dashboard");
+}
+
+export async function logoutAction() {
+    cookies().set("jwt", "", { ...config, maxAge: 0 });
+    redirect("/");
 }
