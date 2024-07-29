@@ -1,7 +1,16 @@
 "use server";
 import { z } from "zod";
+import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { registerUserService } from "../sservices/auth-services";
+
+const config = {
+    maxAge: 60 * 60 * 24 * 7, // 1 week
+    path: "/",
+    domain: process.env.HOST ?? "localhost",
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+};
 
 const schemaRegister = z.object({
     username: z.string().min(3).max(20, {
@@ -51,6 +60,10 @@ export async function registerUserAction(PrevState, formData) {
             message: "Failed to Register.",
         }
     }
+
+    cookies().set("jwt", responseData.jwt, config);
+    redirect("/dashboard");
+
     console.log("###################################################################################################################");
     console.log("user reg successfully", responseData.jwt);
     console.log("###################################################################################################################");
