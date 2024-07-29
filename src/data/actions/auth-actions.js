@@ -2,7 +2,7 @@
 import { z } from "zod";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import { registerUserService } from "../sservices/auth-services";
+import { registerUserService } from "../services/auth-services";
 
 const config = {
     maxAge: 60 * 60 * 24 * 7, // 1 week
