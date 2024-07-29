@@ -1,7 +1,17 @@
 {
   "compilerOptions": {
+    "baseUrl": ".", // Base directory for resolving non-relative module names
     "paths": {
-      "@/*": ["./src/*"]
-    }
-  }
+      "@/*": [
+        "./src/*"
+      ] // Path aliasing
+    },
+    "resolveJsonModule": true // Allows importing JSON modules
+  },
+  "include": [
+    "src/**/*"
+  ], // Files to include
+  "exclude": [
+    "node_modules"
+  ] // Exclude node_modules folder
 }

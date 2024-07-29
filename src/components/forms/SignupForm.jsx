@@ -14,10 +14,13 @@ import {
 
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { data } from "autoprefixer";
+import { ZodErrors } from "@/components/custom/ZodErrors";
+import { StrapiErrors } from "../custom/StrapiErrors";
 
 const INITIAL_STATE = {
-    data: "Hello MF <3 <3 <3",
+    data: null,
+    zodErrors: null,
+    mmessage: null
 }
 
 export function SignupForm() {
@@ -43,6 +46,8 @@ export function SignupForm() {
                                 type="text"
                                 placeholder="username"
                             />
+                            <ZodErrors error={formState?.zodErrors?.username} />
+
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="email">Email</Label>
@@ -52,6 +57,8 @@ export function SignupForm() {
                                 type="email"
                                 placeholder="name@example.com"
                             />
+                            <ZodErrors error={formState?.zodErrors?.email} />
+
                         </div>
 
                         <div className="space-y-2">
@@ -62,10 +69,13 @@ export function SignupForm() {
                                 type="password"
                                 placeholder="password"
                             />
+                            <ZodErrors error={formState?.zodErrors?.password} />
+
                         </div>
                     </CardContent>
                     <CardFooter className="flex flex-col">
                         <button className="w-full">Sign Up</button>
+                        <StrapiErrors error={formState?.strapiErrors} />
                     </CardFooter>
                 </Card>
                 <div className="mt-4 text-center text-sm">
