@@ -1,101 +1,49 @@
-'use client';
+import Link from 'next/link';
+import { StrapiImage } from '@/components/custom/StrapiImage'; // Ensure this path is correct
+import { getUserMeLoader } from "@/data/services/get-user-me-loader";
 
-import Link from "next/link";
-import { StrapiImage } from "@/components/custom/StrapiImage";
+export async function HeroSection({ data }) {
+    const user = await getUserMeLoader();
+    const { heading, subheading, image, link } = data;
 
-const imageProps = {
-    id: 0,// example default value
-    url: "",
-    alternativeText: ""
-};
-const linkProps = {
-    id: 0,// example default value
-    url: "",
-    text: ""
-};
-const HeroSectionProps = {
-    data: {
-        id: 0, // example default value
-        __component: "", // example default value
-        heading: "", // example default value
-        subheading: "",// example default value
-        image: imageProps,
-        link: linkProps
-    }
-};
+    const userLoggedIn = user.ok;
+    const linkUrl = userLoggedIn ? "/dashboard" : link.url;
+    // useEffect(() => {
+    //     async function fetchUser() {
+    //         try {
+    //             const response = await fetch('/api/user/me');
+    //             const result = await response.json();
+    //             setUser(result);
+    //         } catch (error) {
+    //             console.error('Failed to fetch user:', error);
+    //         }
+    //     }
+    //     fetchUser();
+    // }, []);
 
-export function HeroSection({ data }) {
-    const { heading, subheading, image } = data;
 
-    // Extract information from data if available
-    const title = data?.heading || 'Default Heading';
-    const description = data?.subheading || 'Default Description';
 
     return (
-        <section className="hero">
-            <div className="hero-image">
+        <section className="relative h-[500px] overflow-hidden flex items-center justify-center text-white">
+            <div className="absolute inset-0 flex justify-center items-center overflow-hidden">
                 <StrapiImage
                     src={image?.url}
                     alt={image?.alternativeText}
-                    height={500} // Set a default or dynamic height
-                    width={1600} // Set a default or dynamic width
-                    className="hero-bg-image"
+                    height={500}
+                    width={1600}
+                    className="object-cover w-full h-full"
                 />
             </div>
-            <div className="container">
+            <div className="relative z-10 flex flex-col items-center justify-center text-center bg-black bg-opacity-20 w-full h-full">
                 <h1 className="text-6xl font-bold mb-6 p-4">{heading}</h1>
-                <p className="text-xl text-500">{subheading}</p>
-                <Link href="/learn-more">
-                    <h6 className="btn-primary">Learn More</h6>
+                <p className="text-xl  mt-4">{subheading}</p>
+                <Link
+                    className="mt-8 inline-flex items-center justify-center px-6 py-3 text-base font-medium text-black bg-white rounded-md shadow hover:bg-gray-100"
+                    href={linkUrl}
+                >
+                    {userLoggedIn ? 'GO TO DASHBOARD' : link.text}
                 </Link>
             </div>
-            <style jsx>{`
-    .hero {
-        position: relative;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 500px; /* Ensure section height is enough */
-        color: white;
-        overflow: hidden; /* Prevent content overflow */
-    }
-    .hero-image {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        display: flex; /* Center image */
-        justify-content: center; /* Center image */
-        align-items: center; /* Center image */
-        overflow: hidden;
-    }
-    .hero-bg-image {
-        object-fit: cover; /* Cover the container completely */
-        width: 100%;
-        height: 100%;
-    }
-    .container {
-        position: relative;
-        text-align: center;
-        z-index: 1; /* Ensure content is above the image */
-    }
-    .btn-primary {
-        display: inline-block;
-        padding: 10px 20px;
-        margin-top: 20px;
-        color: black;
-        background-color: #ffffff;
-        border: none;
-        border-radius: 5px;
-        text-decoration: none;
-    }
-    .btn-primary:hover {
-        background-color: #005bb5;
-    }
-`}</style>
-
-
         </section>
     );
 }
