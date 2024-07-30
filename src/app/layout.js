@@ -5,6 +5,7 @@ import Head from "next/head";
 import { getGlobalPageData, getGlobalPageMetadata } from "@/data/loaders";
 import Header from "@/components/custom/Header";
 import Footer from "@/components/custom/Footer";
+import { Toaster } from "@/components/ui/sonner";
 const inter = Inter({ subsets: ["latin"] });
 
 export async function generateMetadata() {
@@ -26,6 +27,7 @@ export default async function RootLayout({ children }) {
         <title>{globalData.title}</title>
       </Head>
       <body className={inter.className}>
+        <Toaster position="bottom-center" />
         <Header data={globalData.header} />
         <main>{children}</main>
         <Footer data={globalData.footer} />
