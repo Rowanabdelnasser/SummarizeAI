@@ -1,3 +1,7 @@
+import { ChatOpenAI } from "@langchain/openai";
+import { PromptTemplate } from "@langchain/core/prompts";
+import { StringOutputParser } from "@langchain/core/output_parsers";
+
 import { fetchTranscript } from "@/lib/youtube-transcript";
 import { getAuthToken } from "@/data/services/get-token";
 import { getUserMeLoader } from "@/data/services/get-user-me-loader";
@@ -16,46 +20,96 @@ function transformData(data) {
     };
 }
 
-export async function POST(req) {
-    console.log("FROM OUR ROUTE HANDLER:", req.body);
+const TEMPLATE = `
+INSTRUCTIONS: 
+  For the this {text} complete the following steps.
+  Generate the title based on the content provided
+  Summarize the following content and include 5 key topics, writing in first person using normal tone of voice.
+  
+  Write a youtube video description
+    - Include heading and sections.  
+    - Incorporate keywords and key takeaways
 
+  Generate bulleted list of key points and benefits
+
+  Return possible and best recommended key words
+`;
+
+async function generateSummary(content, template) {
+    const prompt = PromptTemplate.fromTemplate(template);
+
+    const model = new ChatOpenAI({
+        openAIApiKey: process.env.OPENAI_API_KEY,
+        modelName: process.env.OPENAI_MODEL ?? "gpt-4-turbo-preview",
+        temperature: process.env.OPENAI_TEMPERATURE
+            ? parseFloat(process.env.OPENAI_TEMPERATURE)
+            : 0.7,
+        maxTokens: process.env.OPENAI_MAX_TOKENS
+            ? parseInt(process.env.OPENAI_MAX_TOKENS)
+            : 4000,
+    });
+
+    const outputParser = new StringOutputParser();
+    const chain = prompt.pipe(model).pipe(outputParser);
+
+    try {
+        const summary = await chain.invoke({ text: content });
+        return summary;
+    } catch (error) {
+        if (error instanceof Error)
+            return new Response(JSON.stringify({ error: error.message }));
+        return new Response(
+            JSON.stringify({ error: "Failed to generate summary." })
+        );
+    }
+}
+
+export async function POST(req) {
     const user = await getUserMeLoader();
     const token = await getAuthToken();
 
-    if (!user.ok || !token) {
+    if (!user.ok || !token)
         return new Response(
             JSON.stringify({ data: null, error: "Not authenticated" }),
             { status: 401 }
         );
-    }
 
-    if (user.data.credits < 1) {
+    if (user.data.credits < 1)
         return new Response(
-            JSON.stringify({ data: null, error: "Insufficient credits" }),
+            JSON.stringify({
+                data: null,
+                error: "Insufficient credits",
+            }),
             { status: 402 }
         );
-    }
 
+    console.log("FROM OUR ROUTE HANDLER:", req.body);
     const body = await req.json();
-    const { videoId } = body;
+    const videoId = body.videoId;
 
     let transcript;
 
     try {
         transcript = await fetchTranscript(videoId);
-
-        const transformedData = transformData(transcript);
-        console.log("Transcript:", transformedData);
-        return new Response(
-            JSON.stringify({ data: transcript, error: null }),
-            {
-                status: 200,
-            }
-        );
     } catch (error) {
         console.error("Error processing request:", error);
         if (error instanceof Error)
-            return new Response(JSON.stringify({ error: error.message }), { status: 500 });
-        return new Response(JSON.stringify({ error: "Unknown error" }), { status: 500 });
+            return new Response(JSON.stringify({ error: error.message }));
+        return new Response(JSON.stringify({ error: "Error getting transcript." }));
+    }
+
+    const transformedData = transformData(transcript);
+    console.log("Transformed Data", transformedData);
+
+    let summary;
+
+    try {
+        summary = await generateSummary(transformedData.text, TEMPLATE);
+        return new Response(JSON.stringify({ data: summary, error: null }));
+    } catch (error) {
+        console.error("Error processing request:", error);
+        if (error instanceof Error)
+            return new Response(JSON.stringify({ error: error.message }));
+        return new Response(JSON.stringify({ error: "Error generating summary." }));
     }
 }
