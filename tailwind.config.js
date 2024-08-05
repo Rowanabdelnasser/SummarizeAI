@@ -1,4 +1,3 @@
-import config from 'wd/lib/config';
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
@@ -76,6 +75,5 @@ module.exports = {
     },
   },
   plugins: [require("tailwindcss-animate")],
-};
+}
 
-export default config;
