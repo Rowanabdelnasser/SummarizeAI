@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { cn, extractYouTubeID } from "@/lib/utils";
 
 import { generateSummaryService } from "@/data/services/summary-service";
+import { createSummaryAction } from "@/data/actions/summary-actions";
 
 import { Input } from "@/components/ui/input";
 import { SubmitButton } from "@/components/custom/SubmitButton";
@@ -22,48 +23,65 @@ export function SummaryForm() {
     async function handleFormSubmit(event) {
         event.preventDefault();
         setLoading(true);
+        toast.success("Submitting Form");
+
+        const formData = new FormData(event.currentTarget);
+        const videoId = formData.get("videoId");
+
+        const processedVideoId = extractYouTubeID(videoId);
+
+        if (!processedVideoId) {
+            toast.error("Invalid Youtube Video ID");
+            setLoading(false);
+            setValue("");
+            setError({
+                ...INITIAL_STATE,
+                message: "Invalid Youtube Video ID",
+                name: "Invalid Id",
+            });
+            return;
+        }
+
+        toast.success("Generating Summary");
+
+        const summaryResponseData = await generateSummaryService(videoId);
+        console.log(summaryResponseData, "Response from route handler");
+
+        if (summaryResponseData.error) {
+            setValue("");
+            toast.error(summaryResponseData.error);
+            setError({
+                ...INITIAL_STATE,
+                message: summaryResponseData.error,
+                name: "Summary Error",
+            });
+            setLoading(false);
+            return;
+        }
+
+        const payload = {
+            data: {
+                title: `Summary for video: ${processedVideoId}`,
+                videoId: processedVideoId,
+                summary: summaryResponseData.data,
+            },
+        };
 
         try {
-            const formData = new FormData(event.currentTarget);
-            const videoId = formData.get("videoId");
-
-            const processedVideoId = extractYouTubeID(videoId);
-
-            if (!processedVideoId) {
-                toast.error("Invalid Youtube Video ID");
-                setLoading(false);
-                setValue("");
-                setError({
-                    ...INITIAL_STATE,
-                    message: "Invalid Youtube Video ID",
-                    name: "Invalid Id",
-                });
-                return;
-            }
-
-            const summaryResponseData = await generateSummaryService(videoId);
-            console.log("Response from route handler:", summaryResponseData);
-
-            if (summaryResponseData.error) {
-                setValue("");
-                toast.error(summaryResponseData.error);
-                setError({
-                    ...INITIAL_STATE,
-                    message: summaryResponseData.error,
-                    name: "Summary Error",
-                });
-                setLoading(false);
-                return;
-            }
-
-            toast.success("Summary Created");
-        }
-        catch (error) {
-            console.error("Error during form submission:", error);
-            setError({ message: error.message, name: "videoId" });
-        } finally {
+            await createSummaryAction(payload);
+        } catch (error) {
+            toast.error("Error Creating Summary");
+            setError({
+                ...INITIAL_STATE,
+                message: "Error Creating Summary",
+                name: "Summary Error",
+            });
             setLoading(false);
+            return;
         }
+
+        toast.success("Summary Created");
+        setLoading(false);
     }
 
     function clearError() {
